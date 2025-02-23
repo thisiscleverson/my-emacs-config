@@ -1,148 +1,184 @@
+;; --------- Emacs GUI config
 
-;; Desativar a mensagem de boas-vindas
+;; dead keys
+(require 'iso-transl)
+;; Remove welcome message
 (setq inhibit-startup-message t)
-
-;; Remover barras de ferramentas e menus
+;; Remove menus
+(menu-bar-mode -1)
 (tool-bar-mode -1)
-;;(menu-bar-mode -1)  ;; Descomente esta linha se você quiser remover a barra de menus
+(scroll-bar-mode -1)
 
-;; Exibir números nas linhas
+;; line-numbers
+;;(global-linum-mode t)
 (global-display-line-numbers-mode t)
 
-;; Desativar arquivos de backup (~) e auto-save (#)
-(setq make-backup-files nil)
+;; highlight actual line
+(global-hl-line-mode)
+
+;; Font size
+(set-face-attribute 'default nil :height 100)
+
+;; cancel auto-save and backups
 (setq auto-save-default nil)
+(setq make-backup-files nil)
 
-;; resize easy
-;(global-set-key (kbd "C-<right>") 'shrink-window-horizontally)
-;(global-set-key (kbd "C-<left>") 'enlarge-window-horizontally)
-;(global-set-key (kbd "C-<up>") 'enlarge-window)
-					;(global-set-key (kbd "C-<down>") 'shrink-window)
+;; flex buffer
+(defalias 'list-buffers 'ibuffer-other-window) ;; ibuffer default C-x C-b
+(setq ido-enable-flex-matching t)
+(setq ido-everywhere t)
 
-;; Configuração do repositório MELPA
+;; modes
+(ido-mode 1)
+(cua-mode 1)
+
+;; org
+(require 'org)
+(define-key global-map "\C-cl" 'org-store-link)
+(define-key global-map "\C-ca" 'org-agenda)
+(setq org-log-done t)
+
+;; --------- melpa stuff
+
 (require 'package)
 (setq package-enable-at-startup nil)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+(add-to-list 'package-archives
+	     '("melpa" . "http://melpa.org/packages/"))
 (package-initialize)
 
-;; Instalar e configurar o `use-package`
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
 
-(require 'use-package)
-
-;;dashboard
+;; --------- external melpa packages
 (use-package dashboard
   :ensure t
   :init
-  (setq dashboard-startup-banner 'official) ;; Exibe o banner padrão do Emacs
-  (setq dashboard-set-heading-icons t)
-  (setq dashboard-set-file-icons t)
-  (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*"))) ;; Força o dashboard como buffer inicial
-
-  ;; Função para verificar se Emacs foi aberto em um diretório (emacs .)
-  (defun my-dashboard-condition ()
-    (let ((args (cdr command-line-args)))
-      (and (= (length args) 1)
-           (file-directory-p (car args)))))
-
+  (progn
+    (setq dashboard-items '(
+                (recents . 5)
+			    (projects . 5)
+                (bookmarks . 5)
+                ))
+    (setq dashboard-banner-logo-title "Oii bb! 🫦")
+    (setq dashboard-startup-banner 'logo)
+    (setq dashboard-set-file-icons t)
+    (setq dashboard-heading-icons t)
+    (setq dashboard-set-init-info nil)
+    )
   :config
-  (dashboard-setup-startup-hook)
+  (dashboard-setup-startup-hook))
+(setq dashboard-org-agenda-categories '("Tasks"))
 
-  ;; Função para abrir o dashboard e ajustar a exibição
-  (defun my-open-dashboard ()
-    (interactive)
-    (if (get-buffer "*dashboard*")
-        (switch-to-buffer "*dashboard*")
-      (let ((dashboard-items
-             (if (my-dashboard-condition)
-                 '() ;; Exibir apenas "agenda" ao abrir o Emacs em um diretório
-               '((recents  . 5)
-                 (bookmarks . 5)
-                 (projects . 5)
-                 (agenda . 5)
-                 (registers . 5))))) ;; Exibir todas as seções normalmente
-        (dashboard-refresh-buffer))))
+;; ---- auto-complete
 
-  ;; Hook para abrir o dashboard automaticamente e ajustar as seções
-  (add-hook 'emacs-startup-hook 'my-open-dashboard))
+; snippets from autocomplete
+(use-package yasnippet
+  :ensure t)
 
+(yas-global-mode 1)
 
-;; Tema Gruvbox
-(use-package gruvbox-theme
+; company: autocomplete library
+(use-package company
   :ensure t
   :config
-  (load-theme 'gruvbox t))
+  (setq company-idle-delay 0)
+  (setq company-minimum-prefix-length 1)
+  (global-company-mode t))
 
-;; Configuração de atalhos de teclado com `ergoemacs-mode`
-(use-package ergoemacs-mode
-  :ensure t
+
+(use-package try
+  :ensure t)
+
+(use-package spaceline
+  :ensure t)
+
+(use-package spaceline-config
   :config
-  (setq ergoemacs-theme nil)
-  (setq ergoemacs-keyboard-layout "us")
-  (ergoemacs-mode 1))
+  (spaceline-emacs-theme))
 
-;; Instalar e configurar Jedi com `use-package`
-(use-package jedi
-  :ensure t
-  :config
-  (add-hook 'python-mode-hook 'jedi:setup)
-  (setq jedi:complete-on-dot t))
-
-;; Barra lateral Neotree com ícones
-(use-package neotree
-  :ensure t
-  :config
-  (global-set-key (kbd "C-S-b") 'neotree-toggle)
-  (setq neo-theme (if (display-graphic-p) 'icons 'arrow))
-  (add-hook 'neo-after-create-hook
-            (lambda (&rest _) (display-line-numbers-mode -1))))
-
-;; Linter para Python com Flycheck
-(use-package flycheck
-  :ensure t
-  :init (global-flycheck-mode))
-
-;; Which-key para dicas de teclas
 (use-package which-key
   :ensure t
   :config (which-key-mode))
 
-;; Instalar ícones para o modo gráfico
 (use-package all-the-icons
-  :if (display-graphic-p))
-
-;; Use-package para tentar pacotes
-(use-package try
   :ensure t)
 
-;; Configuração do auto-complete para Python
-(use-package company-jedi
+;; ----
+
+(use-package ace-window
+  :ensure t
+  :bind (("C-x o" . ace-window)))
+
+(use-package rebecca-theme
+  :ensure t
+  :config  (load-theme #'rebecca t))
+
+(use-package counsel
+  :ensure t)
+
+(use-package vterm
+    :ensure t)
+
+(use-package vterm-toggle
+    :ensure t)
+
+(global-unset-key (kbd "M-<up>"))
+(global-unset-key (kbd "M-<down>"))
+(use-package move-text
   :ensure t
   :config
-  (add-hook 'python-mode-hook
-            (lambda ()
-              (add-to-list 'company-backends 'company-jedi))))
+  (progn
+    (global-set-key (kbd "M-<up>") 'move-text-up)
+    (global-set-key (kbd "M-<down>") 'move-text-down)))
 
-;; auto-complete
-(use-package auto-complete
+(use-package swiper
   :ensure t
   :init
   (progn
-    (ac-config-default)
-    (global-auto-complete-mode t)))
+    (ivy-mode 1)
+    (setq ivy-use-virtual-buffers t)
+    (setq enable-recursive-minibuffers t)
+    (global-set-key "\C-f" 'swiper)
+    (global-set-key (kbd "<f1> l") 'counsel-find-library)))
 
-;; shell-pop
-(use-package shell-pop
+(use-package markdown-mode
+  :ensure t)
+
+;; ----------- Git config
+
+;; Git extention
+(use-package magit
+  :ensure t)
+
+;; Show diff inline
+(use-package diff-hl
+  :ensure t)
+
+(add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
+(add-hook 'vc-dir-mode-hook 'turn-on-diff-hl-mode)
+
+
+;; Project organization
+(use-package projectile
   :ensure t
-  :custom
-  (shell-pop-shell-type '("ansi-term" "*shell-pop-ansi-term*" (lambda () (ansi-term shell-pop-term-shell))))
-  (shell-pop-term-shell "/bin/zsh")
-  (shell-pop-universal-key "C-t") ;; platformio-ide-terminal key
-  (shell-pop-window-height 30)
-  (shell-pop-window-position "bottom"))
+  :config
+  (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+  (projectile-mode +1))
 
+
+(setq projectile-project-search-path '("~/git/"))
+(setq projectile-switch-project-action 'neotree-projectile-action)
+
+(use-package neotree
+  :ensure t
+  :config
+  (progn
+    (setq neo-theme (if (display-graphic-p) 'icons 'arrow))
+    )
+  :bind (("C-b". 'neotree-toggle));; atom key
+  )
 
 (use-package centaur-tabs
   :ensure t
@@ -155,12 +191,187 @@
     (setq centaur-tabs-set-bar 'over)
     (setq centaur-tabs-set-modified-marker t)
     (setq centaur-tabs-modified-marker "⏺")
-    (centaur-tabs-change-fonts "arial" 100)
+    (centaur-tabs-change-fonts "arial" 120)
     (setq centaur-tabs-set-icons t)
     (setq centaur-tabs-height 32))
   :bind
   ("C-<prior>" . centaur-tabs-backward)
   ("C-<next>" . centaur-tabs-forward))
+
+(use-package emmet-mode
+  :ensure t)
+
+(use-package multiple-cursors
+  :ensure t
+  :config
+  (progn
+    (global-set-key (kbd "M-S-<down>") 'mc/edit-lines)
+    (global-set-key (kbd "C-S-<up>") 'mc/mark-previous-like-this)
+    (global-set-key (kbd "C-S-<down>") 'mc/mark-next-like-this)
+    (global-set-key (kbd "M-S-<left>") 'mc/mark-all-like-this)))
+
+;; ----------- Python config
+(use-package poetry
+  :ensure t
+  :hook
+  ;; activate poetry-tracking-mode when python-mode is active
+  (python-mode . poetry-tracking-mode)
+  )
+
+;; ----------- Syntax checker
+
+(use-package flycheck
+  :ensure t
+  :diminish flycheck-mode
+  :init
+   (setq flycheck-check-syntax-automatically '(save new-line)
+        flycheck-idle-change-delay 5.0
+        flycheck-display-errors-delay 0.9
+        flycheck-highlighting-mode 'symbols
+        flycheck-indication-mode 'left-fringe
+        flycheck-standard-error-navigation t
+        flycheck-deferred-syntax-check nil)
+  :config
+  ;; before install flake8 (pip install flake8)
+  (setq flycheck-python-flake8-executable "~/.local/bin/flake8")
+  ;; before install pylint (pip install pylint)
+  ;; after install, create config file (pylint --generate-rcfile > ~/.pylintrc)
+  (setq flycheck-python-pylint-executable "~/.local/bin/pylint")
+)
+
+(use-package flycheck-inline
+  :ensure t)
+
+(with-eval-after-load 'flycheck
+  (add-hook 'flycheck-mode-hook #'flycheck-inline-mode))
+
+;; ----------- LSP
+
+(use-package lsp-pyright ;; Python LSP
+  :ensure t
+  :hook
+  ((python-mode . (lambda ()
+		    (require 'lsp-pyright)
+                    (lsp-deferred)))
+   (flycheck-mode . (lambda ()
+		      ;; Next checker check the first lsp -> flake8 -> pylint
+		      ;; Waring clause check the next only if dont have errors
+		      ;; If lsp dont have errors, check flake8, if lsp and flake8 dont have any eror
+		      ;; check using pylint.
+                      (flycheck-add-next-checker 'lsp '(warning . python-flake8))
+                      (flycheck-add-next-checker 'python-flake8 '(warning . python-pylint))
+                      (message "Added flycheck checkers.")))))
+
+
+(use-package lsp-ui
+  :ensure t
+  :hook (lsp-mode . lsp-ui-mode)
+  :after lsp-mode
+  :config
+  (setq lsp-ui-doc-mode 1))
+
+
+(use-package shell-pop
+  :ensure t
+  :custom
+  (shell-pop-shell-type '("ansi-term" "terminal" (lambda () (ansi-term shell-pop-term-shell))))
+  (shell-pop-term-shell "/bin/zsh")
+  (shell-pop-universal-key "C-t") ;; platformio-ide-terminal key
+  (shell-pop-window-height 30)
+  (shell-pop-window-position "bottom"))
+  
+
+;; --------- My Functions
+(defun select-line ()
+  (interactive)
+  (if (region-active-p)
+      (progn
+        (forward-line 1)
+        (end-of-line))
+    (progn
+      (end-of-line)
+      (set-mark (line-beginning-position)))))
+
+
+(defun duplicate-line (arg)
+  "Duplicate current line, leaving point in lower line."
+  (interactive "*p")
+
+  ;; save the point for undo
+  (setq buffer-undo-list (cons (point) buffer-undo-list))
+
+  ;; local variables for start and end of line
+  (let ((bol (save-excursion (beginning-of-line) (point)))
+        eol)
+    (save-excursion
+
+      ;; don't use forward-line for this, because you would have
+      ;; to check whether you are at the end of the buffer
+      (end-of-line)
+      (setq eol (point))
+
+      ;; store the line and disable the recording of undo information
+      (let ((line (buffer-substring bol eol))
+            (buffer-undo-list t)
+            (count arg))
+        ;; insert the line arg times
+        (while (> count 0)
+          (newline)         ;; because there is no newline in 'line'
+          (insert line)
+          (setq count (1- count)))
+        )
+
+      ;; create the undo information
+      (setq buffer-undo-list (cons (cons eol (point)) buffer-undo-list)))
+    ) ; end-of-let
+
+  ;; put the point in the lowest line and return
+  (next-line arg))
+
+(defun new-empty-buffer ()
+  (interactive)
+  (let ((-buf (generate-new-buffer "untitled")))
+    (switch-to-buffer -buf)
+    (funcall initial-major-mode)
+    (setq buffer-offer-save t)))
+
+;; --------- keys
+(global-unset-key (kbd "C-/"))
+(global-unset-key (kbd "C-_"))
+(global-unset-key (kbd "M-a"))
+(global-unset-key (kbd "C-e"))
+(global-set-key (kbd "C-<dead-grave>") 'vterm-toggle)
+(global-set-key (kbd "C-e") 'eval-buffer)
+(global-set-key (kbd "C-M-S-<left>") 'shrink-window-horizontally)
+(global-set-key (kbd "C-M-S-<right>") 'enlarge-window-horizontally)
+(global-set-key (kbd "C-M-S-<down>") 'enlarge-window)
+(global-set-key (kbd "C-M-S-<up>") 'shrink-window)
+(global-set-key (kbd "C-<tab>") 'other-window)
+(global-set-key (kbd "C-;") 'comment-line)
+(global-set-key (kbd "C-l") 'select-line)
+(global-set-key (kbd "C-s") 'save-buffer)
+(global-set-key (kbd "C-S-s") 'write-file)
+(global-set-key "\C-a" 'mark-whole-buffer)
+(global-set-key "\C-n" 'new-empty-buffer)
+(global-set-key "\C-k" (lambda () (interactive) (kill-buffer (current-buffer))))
+(global-set-key "\C-c\C-v" 'duplicate-line)
+(global-set-key "\C-x\C-t" 'projectile-run-vterm)
+
+(global-set-key (kbd "C-+")
+                (lambda ()
+                  (interactive)
+                  (let ((old-face-attribute (face-attribute 'default :height)))
+                    (set-face-attribute 'default nil :height (+ old-face-attribute 5)))))
+
+(global-set-key (kbd "C--")
+                (lambda ()
+                  (interactive)
+                  (let ((old-face-attribute (face-attribute 'default :height)))
+                    (set-face-attribute 'default nil :height (- old-face-attribute 5)))))
+
+(require 'term)
+(define-key term-mode-map (kbd "C-c") 'term-kill-subjob)
+(define-key term-mode-map (kbd "C-d") 'kill-process)
 
 
 (custom-set-variables
@@ -168,10 +379,8 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   '("871b064b53235facde040f6bdfa28d03d9f4b966d8ce28fb1725313731a2bcc8" "046a2b81d13afddae309930ef85d458c4f5d278a69448e5a5261a5c78598e012" "98ef36d4487bf5e816f89b1b1240d45755ec382c7029302f36ca6626faf44bbd" "ba323a013c25b355eb9a0550541573d535831c557674c8d59b9ac6aa720c21d3" default))
  '(package-selected-packages
-   '(shell-pop auto-complete-chunk yasnippet which-key try neotree markdown-mode gruvbox-theme flycheck-inline ergoemacs-mode company auto-complete all-the-icons ace-window)))
+   '(lsp-ui lsp-pyright poetry multiple-cursors projectile diff-hl magit swiper vterm-toggle vterm ivy yasnippet which-key try spinner spaceline shell-pop rebecca-theme pyvenv neotree move-text markdown-mode lv jedi ht gruvbox-theme flycheck-inline ergoemacs-mode emmet-mode dashboard company-jedi centaur-tabs auto-complete-chunk all-the-icons ace-window)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
